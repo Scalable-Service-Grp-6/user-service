@@ -1,9 +1,11 @@
 import mongoose, {Schema, Document} from 'mongoose';
+import { UserDto } from '../../dto/user';
+import { UserSessionDto } from '../../dto/userSessions';
 
 
 const LOG_HEADER = 'DB Service';
 
-export const DB_CONNECTED = () => DB_CONNECTED;
+export const DB_CONNECTED = () => dbConnected;
 
 let dbConnected = false;
 
@@ -41,3 +43,29 @@ export const dbConnect = async () => {
 };
 
 (async()=>await dbConnect())();
+
+export const raiseErrorWhenDisconnected = () => {
+    if (DB_CONNECTED() === false) {
+        throw new Error('Database connection failed');
+    }
+}
+
+const userSchema = new Schema<UserDto>({
+    name: {type: String, required: true},
+    email: {type: String, required: true, unique: true},
+    password: {type: String, required: true},
+    role: {type: String, default: 'user'}
+}, {timestamps: true});
+
+const userSessionSchema = new Schema<UserSessionDto>({
+    userId: {type: Schema.Types.ObjectId, ref: 'User', required: true},
+    jwtToken: {type: String, required: true},
+    createdAt: {type: Date, default: Date.now},
+    expiresAt: {type: Schema.Types.Date}
+});
+userSessionSchema.index({expiresAt: 1}, {expireAfterSeconds: 24 * 60 * 60});
+
+
+
+export const UserModel = mongoose.model<UserDto>('User', userSchema);
+export const UserSessionModel = mongoose.model<UserSessionDto>('UserSession', userSessionSchema);
