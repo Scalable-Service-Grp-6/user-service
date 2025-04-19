@@ -27,7 +27,7 @@ mongoose.connection.on('reconnected', ()=>{
 
 export const dbConnect = async () => {
     const LOG_METHOD='dbConnect';
-    console.log(`${LOG_METHOD} db attempted`, LOG_HEADER);
+    console.log(`${LOG_METHOD} attempted`, LOG_HEADER);
     try {
         if (!process.env.MONGO_DB_URL) {
             throw new Error('MONGO_DB_URL environment variable is not defined');
@@ -44,7 +44,7 @@ export const dbConnect = async () => {
 
 (async()=>await dbConnect())();
 
-export const raiseErrorWhenDisconnected = () => {
+export const raiseErrorWhenDisconnected = async() => {
     if (DB_CONNECTED() === false) {
         throw new Error('Database connection failed');
     }
@@ -52,7 +52,7 @@ export const raiseErrorWhenDisconnected = () => {
 
 const userSchema = new Schema<UserDto>({
     name: {type: String, required: true},
-    email: {type: String, required: true, unique: true},
+    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: {type: String, required: true},
     role: {type: String, default: 'user'}
 }, {timestamps: true});

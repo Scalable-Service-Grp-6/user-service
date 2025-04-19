@@ -3,6 +3,7 @@ import { Application, Request, Response, RequestHandler } from 'express';
 import { Params, expressjwt } from 'express-jwt';
 import { SIGN_IN_SECRET_KEY } from '../properties/jwt.json';
 import { checkForSpecificRole, retrieveTokenFromHeaderOrQueryString } from '../controllers/sessions';
+import { createPublicUser } from '../controllers/userDataController';
 import { whoAmIFor } from '../controllers/interservices';
 
 /**
@@ -34,6 +35,8 @@ export class Index {
                 }
             )();
         });
+
+        app.post('/users', createPublicUser as RequestHandler);
     }
 };
 
