@@ -1,5 +1,5 @@
 import { UserDto } from '../dto/user';
-import { createUserRecord, getUserData } from '../models/userDataRepository';
+import { createUserRecord, deleteUserRecord, deleteUserSession, getUserData } from '../models/userDataRepository';
 import { validateEmail, validatePassword, hashPassword } from '../utils/validation';
 
 const LOG_HEADER = 'userDataService.ts';
@@ -43,6 +43,18 @@ export const getUserDataByEmail = async (email: string) => {
 
         const user = await getUserData(email);
         return user;
+    }
+    catch(err: any) {
+        console.error(`${LOG_METHOD} error`, LOG_HEADER, err);
+    }
+}
+
+export const deleteUserData = async (userId: string) => {
+    const LOG_METHOD = 'deleteUserData';
+    try {
+        const deletedUserSession = await deleteUserSession(userId);
+        const deletedUser = await deleteUserRecord(userId);
+        return 'User deleted successfully';
     }
     catch(err: any) {
         console.error(`${LOG_METHOD} error`, LOG_HEADER, err);

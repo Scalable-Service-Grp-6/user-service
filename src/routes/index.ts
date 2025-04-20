@@ -4,10 +4,9 @@ import { Params, expressjwt, Request as JWTRequest } from 'express-jwt';
 import { SIGN_IN_SECRET_KEY } from '../properties/jwt.json';
 import { retrieveTokenFromHeaderOrQueryString } from '../controllers/sessions';
 import {
-    createPublicUser,
-    // createAdminUser,
+    createUser,
     getUserByEmail,
-    // deleteUserById 
+    deleteUser
 } from '../controllers/userDataController';
 import { loginUser, logoutUser, verifySessionAndUserRole, mustBeAuthorizedFor } from '../controllers/userSessionController';
 import { whoAmIFor } from '../controllers/interservices';
@@ -41,13 +40,13 @@ export class Index {
                 }
             )();
         });
+        app.post('/users', createUser('user') as RequestHandler);
+        app.post('/admin', mustBeAuthorizedFor('admin'), createUser('admin') as RequestHandler);
 
-        app.post('/users', createPublicUser as RequestHandler);
-        // app.post('/admin', createAdminUser as RequestHandler);
         app.get('/users', getUserByEmail as RequestHandler);
-        // app.delete('/users/:userId', deleteUserById as RequestHandler);
 
-        
+        app.delete('/users', expressjwt(validateJWT) as RequestHandler, deleteUser as RequestHandler);
+
         app.post('/auth', loginUser as RequestHandler);
         app.delete('/auth', expressjwt(validateJWT) as RequestHandler, mustBeAuthorizedFor('user'), logoutUser);
     }
