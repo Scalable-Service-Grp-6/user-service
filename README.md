@@ -132,7 +132,7 @@ All endpoints accept and return JSON. Protected routes require `Authorization: B
 
 | Action                | Method | Path                  | Header                                | Query                              | Response                             |
 |-----------------------|--------|-----------------------|---------------------------------------|------------------------------------|--------------------------------------|
-| Verify token & role   | GET    | `/auth/verify`        | `Authorization`                       | `?role=user|admin`               | `200` `{ authorized, userId, role }` |
+| Verify token & role   | GET    | `/auth/verify`        | `Authorization`                       | `?role=user or admin`              | `200` `{ authorized, userId, role }` |
 
 ---
 
