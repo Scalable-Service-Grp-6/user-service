@@ -1,8 +1,10 @@
 import { NextFunction, Request, Response } from 'express';
-import { Request as JWTRequest } from 'express-jwt';
 
+const LOG_HEADER = 'sessions.ts';
 
 export const retrieveTokenFromHeaderOrQueryString = (req: Request):string => {
+    const LOG_METHOD = 'retrieveTokenFromHeaderOrQueryString';
+    console.log(`${LOG_HEADER} -> ${LOG_METHOD} called`, LOG_HEADER);
     if(
         req.headers.authorization &&
         req.headers.authorization.split(' ')[0] === 'Bearer'
@@ -11,13 +13,7 @@ export const retrieveTokenFromHeaderOrQueryString = (req: Request):string => {
     }
     else if(req.query && req.query.token) {
         return `${req.query.token as string}`;
-    }
+    }   
     return '';
 }
 
-export const checkForSpecificRole = (req: JWTRequest, res: Response, next: NextFunction) => {
-    (async () => {
-        const {role} = req.query;
-        return next()
-    });
-}

@@ -57,13 +57,15 @@ const userSchema = new Schema<UserDto>({
     role: {type: String, default: 'user'}
 }, {timestamps: true});
 
+
 const userSessionSchema = new Schema<UserSessionDto>({
     userId: {type: Schema.Types.ObjectId, ref: 'User', required: true},
-    jwtToken: {type: String, required: true},
+    sessionId: {type: String, required: true},
     createdAt: {type: Date, default: Date.now},
     expiresAt: {type: Schema.Types.Date}
 });
-userSessionSchema.index({expiresAt: 1}, {expireAfterSeconds: 24 * 60 * 60});
+userSessionSchema.index({ userId: 1, sessionId: 1 }, { unique: true,  name: 'one_session_per_user'});
+userSessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 24 * 60 * 60 });
 
 
 
