@@ -1,6 +1,6 @@
 import { getServerId } from '../controllers/server.id';
-import { Application, Request, Response, RequestHandler } from 'express';
-import { Params, expressjwt } from 'express-jwt';
+import { Application, Request, Response, RequestHandler, NextFunction } from 'express';
+import { Params, expressjwt, Request as JWTRequest } from 'express-jwt';
 import { SIGN_IN_SECRET_KEY } from '../properties/jwt.json';
 import { retrieveTokenFromHeaderOrQueryString } from '../controllers/sessions';
 import {
@@ -9,7 +9,7 @@ import {
     getUserByEmail,
     // deleteUserById 
 } from '../controllers/userDataController';
-import { loginUser, logoutUser, checkForSpecificRole, mustBeAuthorizedFor } from '../controllers/userSessionController';
+import { loginUser, logoutUser, verifySessionAndUserRole, mustBeAuthorizedFor } from '../controllers/userSessionController';
 import { whoAmIFor } from '../controllers/interservices';
 
 /**
@@ -56,9 +56,9 @@ export class Index {
 export class InterServiceIndex {
     public routes(app: Application): void {
         app.get(
-            '/auth/verify',
+            '/verify/user',
             expressjwt(validateJWT) as RequestHandler,
-            checkForSpecificRole,
+            (req: Request, res: Response, next: NextFunction) => verifySessionAndUserRole(req as JWTRequest, res, next),
             whoAmIFor
         );
     }

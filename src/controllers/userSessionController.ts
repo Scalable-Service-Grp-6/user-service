@@ -47,6 +47,7 @@ export const mustBeAuthorizedFor = (role: string) => {
         
     }
 }
+
 export const logoutUser = async (req: Request, res: Response) => {
     const LOG_METHOD = 'logoutUser';
     console.log(`${LOG_HEADER} -> ${LOG_METHOD} called`);
@@ -65,11 +66,25 @@ export const logoutUser = async (req: Request, res: Response) => {
     }
 }
 
-export const checkForSpecificRole = (req: JWTRequest, res: Response, next: NextFunction) => {
-    const LOG_METHOD = 'checkForSpecificRole';
-    console.log(`${LOG_HEADER} -> ${LOG_METHOD} called`, LOG_HEADER, req.query);
-    (async () => {
-        const {role} = req.query;
-        return next()
-    });
+export const verifySessionAndUserRole = async (req: JWTRequest, res: Response, next: NextFunction) => {
+    const LOG_METHOD = 'verifySessionAndUserRole';
+    console.log(`${LOG_HEADER} -> ${LOG_METHOD} called`, LOG_HEADER);
+    const auth = req.auth as any;
+    const role: string = req.query.role as string;
+    if (!auth?.userId || !auth?.sessionId) {
+        res.status(401).json({ message: 'Invalid token payload' });
+    }
+    if (!role) {
+        res.status(400).json({ message: 'Missing role' });
+    }
+    try {
+        if(await validateUserSession(auth.userId, auth.sessionId, role)) {
+            next();
+        }
+        else {
+            res.status(401).json({message: 'Unauthorized'});
+        }
+    } catch (error) {
+        res.status(401).json({message: 'Unauthorized'});
+    }
 }
