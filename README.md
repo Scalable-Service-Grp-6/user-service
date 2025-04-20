@@ -1,56 +1,61 @@
 # User Service
 
-A **Node.js** microservice for user authentication and management in the Movie Booking System. It handles public signups, logins, role-based access (public/admin), and inter-service token verification.
+A **Node.js** and **TypeScript** microservice for user authentication and management within the Movie Booking System. It provides public user registration, login, role-based access (public/admin), session management with JWTs, and inter-service authentication.
 
 ---
 
 ## Table of Contents
 
-- [Description](#description)
+- [Features](#features)
+- [Tech Stack](#tech-stack)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
 - [Environment Variables](#environment-variables)
 - [Running the Service](#running-the-service)
 - [API Endpoints](#api-endpoints)
-  - [Public Register](#public-register)
-  - [Public Login](#public-login)
-  - [Logout (Invalidate)](#logout-invalidate)
-  - [Create Admin](#create-admin)
-  - [Get User Profile](#get-user-profile)
-  - [Delete User](#delete-user)
-  - [Verify Token & Role](#verify-token--role)
 - [Error Handling](#error-handling)
+- [Project Structure](#project-structure)
 - [License](#license)
 - [Author](#author)
 
 ---
 
-## Description
+## Features
 
-This service provides user management features:
+- **Public Registration & Login** with secure password hashing (bcrypt)
+- **JWT-based Sessions** stored in MongoDB with TTL index for expiry
+- **Role-Based Access Control** (`public` vs `admin`)
+- **Single Active Session** per user (upsert logic)
+- **Inter-Service Auth** endpoint to validate tokens & roles
+- **Automatic DB Reconnect** on failures with retry logic
 
-- **Public Users**: Register, login, view own data, logout.
-- **Admin Users**: Create other admin accounts, delete any user.
-- **Inter-Service Auth**: Verify JWT and enforce role-based access for other microservices.
+---
 
-Built with **Express.js**, **Mongoose** (MongoDB), and **JWT**.
+## Tech Stack
+
+- Node.js & TypeScript
+- Express.js
+- MongoDB & Mongoose
+- JWT (`jsonwebtoken`, `express-jwt`)
+- Bcrypt for password hashing
+- UUID for session IDs
 
 ---
 
 ## Prerequisites
 
-- **Node.js** (v16+)
-- **npm** (v8+)
-- **MongoDB** instance (Cloud or local)
-- **Redis** (optional, for caching/pub-sub)
+- **Node.js** v16+ and **npm** v8+
+- **MongoDB** Atlas or local instance
+- (Optional) **Redis** for caching/pub-sub
 
 ---
 
 ## Installation
 
 ```bash
-# Clone the repo
-git clone <repo-url> && cd user-service
+# Clone the repository
+git clone https://github.com/Scalable-Service-Grp-6/user-service.git
+cd user-service
 
 # Install dependencies
 npm install
@@ -60,162 +65,114 @@ npm install
 
 ## Environment Variables
 
-Create a `.env` file in the root with:
+Create a `.env` file in the project root with these variables:
 
 ```dotenv
-PORT=5000
-MONGODB_URI=mongodb://localhost:27017/userdb
-JWT_SECRET=your_jwt_secret
-REFRESH_TOKEN_SECRET=your_refresh_secret
-REDIS_URL=redis://localhost:6379   # optional
+# HTTP ports
+PORT=4000                     # Express app
+INTERSERVICES_PORT=4001       # Optional inter-service endpoint prefix
+
+# MongoDB Connection URI (Atlas)
+MONGO_DB_URL="mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<database>?retryWrites=true&w=majority"
+
+# Retry settings
+DB_CONNECTION_RETRY_TIMEOUT=5000  # ms between reconnect attempts
+
+# JWT secret & expiry (in seconds)
+SIGN_IN_SECRET_KEY="your_32_char_secret"
+SIGN_TOKEN_EXPIRY=86400            # e.g., 24h
 ```
+
+> ⚠️ **Security:** URL-encode special characters in `<password>`, and add `.env` to `.gitignore`.
 
 ---
 
 ## Running the Service
 
 ```bash
-# Development (with hot reload)
+# Development (hot reload)
 npm run dev
 
-# Production
+# Build and run production
 npm run build
 npm start
 ```
 
-Service listens on `http://localhost:${process.env.PORT || 5000}` by default.
+- **Dev server** runs via `ts-node-dev` and watches `src/` files
+- **Compiled output** in `dist/` folder after `npm run build`
 
 ---
 
 ## API Endpoints
 
-### Public Register
+All endpoints accept and return JSON. Protected routes require `Authorization: Bearer <token>` header.
 
-- **Endpoint:** `POST /users`
-- **Headers:** `Content-Type: application/json`
-- **Body:**
-  ```json
-  {
-    "name": "Jane Doe",
-    "email": "jane.doe@example.com",
-    "password": "superSecret123"
-  }
-  ```
-- **Response:** `201 Created`
-  ```json
-  {
-    "userId": "<uuid>",
-    "accessToken": "<jwt>",
-    "expiresIn": 3600
-  }
-  ```
+### Public User Routes
 
-### Public Login
+| Action                | Method | Path                  | Body / Query                          | Response                       |
+|-----------------------|--------|-----------------------|---------------------------------------|--------------------------------|
+| Register public user  | POST   | `/users`              | `{ name, email, password }`           | `201` Created user & tokens    |
+| Login                 | POST   | `/auth/login`         | `{ email, password }`                 | `200` `{ accessToken, expiresAt }` |
+| Logout                | DELETE | `/auth/logout`        | *Header:* `Authorization`             | `204` No Content               |
 
-- **Endpoint:** `POST /auth/login`
-- **Headers:** `Content-Type: application/json`
-- **Body:**
-  ```json
-  {
-    "email": "user@example.com",
-    "password": "hunter2"
-  }
-  ```
-- **Response:** `200 OK`
-  ```json
-  {
-    "accessToken": "<jwt>",
-    "expiresIn": 3600
-  }
-  ```
+### Admin Routes
 
-### Logout (Invalidate)
+| Action                | Method | Path                   | Body                                  | Response                       |
+|-----------------------|--------|------------------------|---------------------------------------|--------------------------------|
+| Create admin user     | POST   | `/admin/users`         | `{ name, email, password }`           | `201` Created admin user       |
 
-- **Endpoint:** `DELETE /auth/logout`
-- **Headers:** `Authorization: Bearer <token>`
-- **Body:** *(optional)*
-  ```json
-  {
-    "refreshToken": "<refresh_token>"
-  }
-  ```
-- **Response:** `204 No Content`
+### User Management
 
-### Create Admin
+| Action                | Method | Path                  | Header                                | Response                       |
+|-----------------------|--------|-----------------------|---------------------------------------|--------------------------------|
+| Get user profile      | GET    | `/users/:userId`      | `Authorization`                       | `200` User data                |
+| Delete user           | DELETE | `/users/:userId`      | `Authorization` (admin or owner)      | `204` No Content               |
 
-- **Endpoint:** `POST /admin/users`
-- **Headers:**
-  - `Authorization: Bearer <adminToken>`
-  - `Content-Type: application/json`
-- **Body:**
-  ```json
-  {
-    "name": "John Admin",
-    "email": "john.admin@example.com",
-    "password": "adminStrong!@#"
-  }
-  ```
-- **Response:** `201 Created`
-  ```json
-  {
-    "userId": "<uuid>",
-    "role": "admin",
-    "createdAt": "2025-04-19T12:34:56Z"
-  }
-  ```
+### Inter-Service Auth
 
-### Get User Profile
-
-- **Endpoint:** `GET /users/:userId`
-- **Headers:** `Authorization: Bearer <token>`
-- **Path Params:** `userId` (UUID)
-- **Response:** `200 OK`
-  ```json
-  {
-    "userId": "<uuid>",
-    "name": "Jane Doe",
-    "email": "jane.doe@example.com",
-    "role": "public"
-  }
-  ```
-
-### Delete User
-
-- **Endpoint:** `DELETE /users/:userId`
-- **Headers:** `Authorization: Bearer <token>`
-- **Path Params:** `userId` (UUID)
-- **Authorization:** Must be **admin** OR the **owner** of `:userId`
-- **Response:** `204 No Content`
-
-### Verify Token & Role
-
-- **Endpoint:** `GET /auth/verify`
-- **Headers:** `Authorization: Bearer <token>`
-- **Query Params:** `role`=`public`|`admin`
-- **Response:** `200 OK`
-  ```json
-  {
-    "authorized": true,
-    "userId": "<uuid>",
-    "role": "admin"
-  }
-  ```
+| Action                | Method | Path                  | Header                                | Query                              | Response                             |
+|-----------------------|--------|-----------------------|---------------------------------------|------------------------------------|--------------------------------------|
+| Verify token & role   | GET    | `/auth/verify`        | `Authorization`                       | `?role=public|admin`               | `200` `{ authorized, userId, role }` |
 
 ---
 
 ## Error Handling
 
-| Status | Condition                               | Response                         |
-|--------|-----------------------------------------|----------------------------------|
-| 400    | Missing/invalid input                   | `{ "error": "Bad Request" }` |
-| 401    | Missing/invalid JWT                     | `{ "error": "Unauthorized" }`|
-| 403    | Insufficient permissions (role failed)  | `{ "error": "Forbidden" }`   |
-| 404    | Resource not found (e.g., userId invalid)| `{ "error": "Not Found" }`   |
-| 500    | Server or auth service error            | `{ "error": "Internal Server Error" }` |
+| Status | Condition                         | Response                         |
+|--------|-----------------------------------|----------------------------------|
+| 400    | Bad request or missing data       | `{ error: "Bad Request" }`     |
+| 401    | Missing/invalid token, auth fail  | `{ error: "Unauthorized" }`    |
+| 403    | Insufficient permissions          | `{ error: "Forbidden" }`       |
+| 404    | Resource not found                | `{ error: "Not Found" }`       |
+| 500    | Server or DB error                | `{ error: "Internal Server Error" }` |
 
 ---
 
+## Project Structure
+
+```
+user-service/
+├─ src/
+│  ├─ controllers/           # Route handlers
+│  │   ├ interservices.ts     # /auth/verify
+│  │   ├ sessions.ts         # session login/logout
+│  │   ├ userDataController.ts
+│  │   └ userSessionController.ts
+│  ├─ dto/                   # Type definitions for DTOs
+│  ├─ models/                # Mongoose schemas & DB connect
+│  ├─ properties/            # Config constants (e.g., JWT secrets)
+│  ├─ routes/                # Route definitions
+│  ├─ services/              # Business logic (userDataService, userSessionService)
+│  ├─ utils/                 # Helpers (JWT extractors, validators)
+│  ├─ app.ts                 # Express app setup
+│  └─ server.ts              # Entry point & server start
+├─ dist/                     # Compiled JS (after build)
+├─ .env                      # Environment variables (ignored)
+├─ package.json              # Scripts & dependencies ([github.com](https://github.com/Scalable-Service-Grp-6/user-service))
+├─ tsconfig.json             # TypeScript config
+└─ README.md                 # This file
+```
+
 ## Author
 
-**Hariharan S** – [GitHub Profile](https://github.com/2024tm93116-hariharan)
-
+**Hariharan S (Erebus)** – [GitHub Profile](https://github.com/Scalable-Service-Grp-6)
