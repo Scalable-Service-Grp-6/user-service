@@ -29,10 +29,21 @@ export const dbConnect = async () => {
     const LOG_METHOD='dbConnect';
     console.log(`${LOG_METHOD} attempted`, LOG_HEADER);
     try {
-        if (!process.env.MONGO_DB_URL) {
-            throw new Error('MONGO_DB_URL environment variable is not defined');
+        const user = process.env.MONGODB_ADMIN_USER_NAME;
+        const pwd = process.env.MONGODB_ADMIN_USER_PASSWORD;
+        const mongoUrl = process.env.MONGODB_URL;
+
+        if (!user || !pwd || !mongoUrl) {
+            throw new Error('Missing MongoDB env vars');
         }
-        await mongoose.connect(process.env.MONGO_DB_URL);
+
+        const safePass = encodeURIComponent(pwd);
+        const mongoUrlWithCredentials = `mongodb://${user}:${safePass}@${mongoUrl}`;
+
+        // if (!process.env.MONGO_DB_URL) {
+        //     throw new Error('MONGO_DB_URL environment variable is not defined');
+        // }
+        await mongoose.connect(mongoUrlWithCredentials);
     }
     catch(err: any) {
         console.log(`${LOG_METHOD} ${err.stack}`, LOG_HEADER);

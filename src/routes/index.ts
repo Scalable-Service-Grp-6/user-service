@@ -32,7 +32,7 @@ const loadJwt:Params = {
 
 export class Index {
     public routes(app: Application): void {
-        app.get('/ping', (req: Request, res: Response) => {
+        app.get('/users/ping', (req: Request, res: Response) => {
             (
                 async () => {
                     const serverId = await getServerId();
@@ -40,22 +40,22 @@ export class Index {
                 }
             )();
         });
-        app.post('/users', createUser('user') as RequestHandler);
-        app.post('/admin', mustBeAuthorizedFor('admin'), createUser('admin') as RequestHandler);
+        app.post('/users/users', createUser('user') as RequestHandler);
+        app.post('/users/admin', mustBeAuthorizedFor('admin'), createUser('admin') as RequestHandler);
 
-        app.get('/users', getUserByEmail as RequestHandler);
+        app.get('/users/users', getUserByEmail as RequestHandler);
 
-        app.delete('/users', expressjwt(validateJWT) as RequestHandler, deleteUser as RequestHandler);
+        app.delete('/users/users', expressjwt(validateJWT) as RequestHandler, deleteUser as RequestHandler);
 
-        app.post('/auth', loginUser as RequestHandler);
-        app.delete('/auth', expressjwt(validateJWT) as RequestHandler, mustBeAuthorizedFor('user'), logoutUser);
+        app.post('/users/auth', loginUser as RequestHandler);
+        app.delete('/users/auth', expressjwt(validateJWT) as RequestHandler, mustBeAuthorizedFor('user'), logoutUser);
     }
 };
 
 export class InterServiceIndex {
     public routes(app: Application): void {
         app.get(
-            '/verify/user',
+            '/users/verify/user',
             expressjwt(validateJWT) as RequestHandler,
             (req: Request, res: Response, next: NextFunction) => verifySessionAndUserRole(req as JWTRequest, res, next),
             whoAmIFor
