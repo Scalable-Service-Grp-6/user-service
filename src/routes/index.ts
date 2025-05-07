@@ -49,11 +49,7 @@ export class Index {
 
         app.post('/users/auth', loginUser as RequestHandler);
         app.delete('/users/auth', expressjwt(validateJWT) as RequestHandler, mustBeAuthorizedFor('user'), logoutUser);
-    }
-};
 
-export class InterServiceIndex {
-    public routes(app: Application): void {
         app.get(
             '/users/verify/user',
             expressjwt(validateJWT) as RequestHandler,
@@ -62,3 +58,14 @@ export class InterServiceIndex {
         );
     }
 };
+
+// export class InterServiceIndex {
+//     public routes(app: Application): void {
+//         app.get(
+//             '/users/verify/user',
+//             expressjwt(validateJWT) as RequestHandler,
+//             (req: Request, res: Response, next: NextFunction) => verifySessionAndUserRole(req as JWTRequest, res, next),
+//             whoAmIFor
+//         );
+//     }
+// };

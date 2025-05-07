@@ -1,6 +1,9 @@
 import * as bodyParser from 'body-parser';
 import express from 'express';
-import { Index, InterServiceIndex } from './routes/index';
+import { 
+    Index, 
+    // InterServiceIndex 
+} from './routes/index';
 
 
 class App {
@@ -17,12 +20,12 @@ class App {
 
 class InterServiceApp {
     public interServiceApp: express.Application;
-    public interServiceRoutes: InterServiceIndex = new InterServiceIndex();
+    // public interServiceRoutes: InterServiceIndex = new InterServiceIndex();
 
     constructor() { 
         this.interServiceApp = express();
         this.interServiceApp.use(bodyParser.json());
-        this.interServiceRoutes.routes(this.interServiceApp);
+        // this.interServiceRoutes.routes(this.interServiceApp);
     }
 }
 
